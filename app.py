@@ -129,10 +129,10 @@ if st.button("Calculate Plan"):
         n_years = n_months / 12
 
         if n_months <= 0:
-        st.warning(f"⚠️ Goal '{goal['Name']}' must be after SIP start date. Skipping this goal.")
-        continue
+            st.warning(f"⚠️ Goal '{goal['Name']}' must be after SIP start date. Skipping this goal.")
+            continue
 
-                        fv = goal["Future Value"]
+                                fv = goal["Future Value"]
 
         # Adjust FV based on all future lump sums before this goal
         for lump in future_lumps:
@@ -170,6 +170,7 @@ if st.button("Calculate Plan"):
     col1.metric("Total Future Value Needed", f"₹ {total_fv:,.0f}")
     col2.metric("Total Monthly SIP (Today)", f"₹ {total_sip:,.0f}")
     col1.metric("Total Lump Sum Needed Today", f"₹ {total_lumpsum:,.0f}")
+
 
 
 
