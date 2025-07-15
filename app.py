@@ -14,28 +14,24 @@ def calculate_future_value(present_value, rate, years):
 
 def calculate_sip_step_up(fv, annual_return, years, annual_step_up):
     """
-    Calculate the starting SIP amount for a step-up SIP.
-    SIP increases by a fixed percentage every year.
+    Calculates initial SIP with step-up logic using accurate month-level compounding.
     """
     monthly_rate = annual_return / 12
-    total_months = years * 12
+    total_months = int(years * 12)
 
-    def future_value_of_step_up_sip(start_sip):
+    def compute_future_value(start_sip):
         fv_accum = 0
-        for year in range(years):
-            yearly_sip = start_sip * ((1 + annual_step_up) ** year)
-            for month in range(12):
-                month_index = year * 12 + month
-                months_left = total_months - month_index
-                fv_accum += yearly_sip * ((1 + monthly_rate) ** months_left)
+        sip_amount = start_sip
+        for month in range(total_months):
+            fv_accum += sip_amount * ((1 + monthly_rate) ** (total_months - month))
+            if (month + 1) % 12 == 0:
+                sip_amount *= (1 + annual_step_up)
         return fv_accum
 
-    # Binary search for SIP
-    low = 0
-    high = fv
+    low, high = 0, fv
     for _ in range(100):
         mid = (low + high) / 2
-        if future_value_of_step_up_sip(mid) < fv:
+        if compute_future_value(mid) < fv:
             low = mid
         else:
             high = mid
@@ -107,13 +103,18 @@ if st.button("Calculate Plan"):
     total_sip = 0
 
     for goal in goals:
-        month_map = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+        month_map = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6,
+                     "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
         sip_start_month_num = month_map[sip_start_month]
 
         start_date_month_index = sip_start_year * 12 + sip_start_month_num
-        target_date_month_index = goal["Year"] * 12  # assuming December as default target month
+        target_date_month_index = goal["Year"] * 12 + 12  # Assuming goal month is December
         n_months = target_date_month_index - start_date_month_index
         n_years = n_months / 12
+
+        if n_months <= 0:
+            st.warning(f"⚠️ Goal '{goal['Name']}' must be after SIP start date. Skipping this goal.")
+            continue
 
         fv = goal["Future Value"]
         total_fv += fv
