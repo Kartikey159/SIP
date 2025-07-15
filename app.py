@@ -132,7 +132,7 @@ if st.button("Calculate Plan"):
             st.warning(f"⚠️ Goal '{goal['Name']}' must be after SIP start date. Skipping this goal.")
             continue
 
-                                fv = goal["Future Value"]
+        fv = goal["Future Value"]
 
         # Adjust FV based on all future lump sums before this goal
         for lump in future_lumps:
