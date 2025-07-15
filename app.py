@@ -12,31 +12,30 @@ def calculate_future_value(present_value, rate, years):
     """
     return present_value * ((1 + rate) ** years)
 
-def calculate_sip_step_up(fv, rate, years, step_up_rate):
+def calculate_sip_step_up(fv, annual_return, years, annual_step_up):
     """
-    Calculates SIP required with annual step-up.
-    Based on reverse calculation of a step-up SIP annuity.
+    Calculate the starting SIP amount for a step-up SIP.
+    SIP increases by a fixed percentage every year.
     """
-    monthly_rate = rate / 12
+    monthly_rate = annual_return / 12
     total_months = years * 12
-    total_value = 0
-    monthly_sip = 0
 
-    # Use binary search to find monthly SIP
+    def future_value_of_step_up_sip(start_sip):
+        fv_accum = 0
+        for year in range(years):
+            yearly_sip = start_sip * ((1 + annual_step_up) ** year)
+            for month in range(12):
+                month_index = year * 12 + month
+                months_left = total_months - month_index
+                fv_accum += yearly_sip * ((1 + monthly_rate) ** months_left)
+        return fv_accum
+
+    # Binary search for SIP
     low = 0
     high = fv
     for _ in range(100):
         mid = (low + high) / 2
-        value = 0
-        current_sip = mid
-
-        for year in range(years):
-            for month in range(12):
-                months_left = total_months - (year * 12 + month)
-                value += current_sip * ((1 + monthly_rate) ** months_left)
-            current_sip *= (1 + step_up_rate)
-
-        if value < fv:
+        if future_value_of_step_up_sip(mid) < fv:
             low = mid
         else:
             high = mid
