@@ -108,14 +108,13 @@ if st.button("Calculate Plan"):
 
     for goal in goals:
         month_map = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
-sip_start_month_num = month_map[sip_start_month]
+        sip_start_month_num = month_map[sip_start_month]
 
-start_date_month_index = sip_start_year * 12 + sip_start_month_num
+        start_date_month_index = sip_start_year * 12 + sip_start_month_num
+        target_date_month_index = goal["Year"] * 12  # assuming December as default target month
+        n_months = target_date_month_index - start_date_month_index
+        n_years = n_months / 12
 
-target_date_month_index = goal["Year"] * 12  # assuming December as default target month
-n_months = target_date_month_index - start_date_month_index
-n_years = n_months / 12
-        # already computed above with month precision
         fv = goal["Future Value"]
         total_fv += fv
 
@@ -133,7 +132,7 @@ n_years = n_months / 12
             "Goal": goal["Name"],
             "Target Year": goal["Year"],
             "Future Cost (₹)": round(fv, 2),
-            "Years to Goal": n_years,
+            "Years to Goal": round(n_years, 2),
             "Monthly SIP Required (₹)": round(sip_required, 2),
             "Lump Sum Today (₹)": round(lumpsum_required, 2)
         })
