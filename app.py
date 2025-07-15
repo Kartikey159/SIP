@@ -57,7 +57,7 @@ st.title("SIP Calculator KG Capital")
 
 st.header("1. Investor Profile")
 age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
-current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0)
+current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
 
 st.header("2. Goal Planning")
 num_goals = st.number_input("How many financial goals do you want to plan for?", min_value=1, max_value=10, value=2)
@@ -71,7 +71,7 @@ for i in range(int(num_goals)):
     st.subheader(f"Goal #{i+1}")
     goal_name = st.text_input(f"Name of Goal #{i+1}", key=f"goal_name_{i}")
     target_year = st.number_input(f"Target Year for {goal_name}", min_value=current_year, max_value=current_year+50, value=current_year+5, key=f"year_{i}")
-    present_cost = st.number_input(f"Estimated Present Cost of {goal_name} (in ₹)", min_value=0.0, step=1000.0, key=f"cost_{i}")
+    present_cost = st.number_input(f"Estimated Present Cost of {goal_name} (in ₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"cost_{i}")
     inflation_rate = st.number_input(f"Expected Inflation Rate for {goal_name} (%)", min_value=0.0, max_value=100.0, value=default_inflation, step=0.1, key=f"inf_{i}") / 100
 
     years_to_goal = target_year - current_year
@@ -88,6 +88,7 @@ for i in range(int(num_goals)):
 
 st.header("3. SIP Preferences")
 sip_start_year = st.number_input("Year you want to start SIP", min_value=current_year, max_value=current_year+50, value=current_year)
+sip_start_month = st.selectbox("Select SIP Start Month", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
 sip_grows = st.radio("Do you want to increase SIP every year?", ["No (Constant)", "Yes (Grow Annually)"])
 annual_growth_rate = 0.0
 if sip_grows == "Yes (Grow Annually)":
@@ -106,8 +107,15 @@ if st.button("Calculate Plan"):
     total_sip = 0
 
     for goal in goals:
-        n_years = goal["Year"] - sip_start_year
-        n_months = n_years * 12
+        month_map = {"January": 1, "February": 2, "March": 3, "April": 4, "May": 5, "June": 6, "July": 7, "August": 8, "September": 9, "October": 10, "November": 11, "December": 12}
+sip_start_month_num = month_map[sip_start_month]
+
+start_date_month_index = sip_start_year * 12 + sip_start_month_num
+
+target_date_month_index = goal["Year"] * 12  # assuming December as default target month
+n_months = target_date_month_index - start_date_month_index
+n_years = n_months / 12
+        # already computed above with month precision
         fv = goal["Future Value"]
         total_fv += fv
 
