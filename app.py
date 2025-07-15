@@ -52,7 +52,15 @@ st.set_page_config(page_title="SIP Calculator KG Capital", layout="wide")
 st.title("SIP Calculator KG Capital")
 
 st.header("1. Investor Profile")
-# current_year is now defined above with investor profile section
+current_year = datetime.now().year
+
+st.header("2. Future Lump Sum Inflows (Optional)")
+future_lumps = []
+num_lumps = st.number_input("How many future lump sum infusions do you expect?", min_value=0, max_value=5, value=0)
+for i in range(num_lumps):
+    lump_year = st.number_input(f"Year of Lump Sum #{i+1}", min_value=current_year, max_value=current_year+50, value=current_year+1, key=f"lump_year_{i}")
+    lump_amount = st.number_input(f"Expected Amount of Lump Sum #{i+1} (₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"lump_amt_{i}")
+    future_lumps.append({"year": lump_year, "amount": lump_amount})
 
 
 future_lumps = []
@@ -64,14 +72,7 @@ for i in range(num_lumps):
 age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
 current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
 
-# Optional: Future Lump Sum Inflows
-st.header("1A. Future Lump Sum Inflows (Optional)")
-future_lumps = []
-num_lumps = st.number_input("How many future lump sum infusions do you expect?", min_value=0, max_value=5, value=0)
-for i in range(num_lumps):
-    lump_year = st.number_input(f"Year of Lump Sum #{i+1}", min_value=current_year, max_value=current_year+50, value=current_year+1, key=f"lump_year_{i}")
-    lump_amount = st.number_input(f"Expected Amount of Lump Sum #{i+1} (₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"lump_amt_{i}")
-    future_lumps.append({"year": lump_year, "amount": lump_amount})
+
 current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
 
 st.header("2. Goal Planning")
@@ -173,6 +174,7 @@ if st.button("Calculate Plan"):
     col1.metric("Total Future Value Needed", f"₹ {total_fv:,.0f}")
     col2.metric("Total Monthly SIP (Today)", f"₹ {total_sip:,.0f}")
     col1.metric("Total Lump Sum Needed Today", f"₹ {total_lumpsum:,.0f}")
+
 
 
 
