@@ -52,6 +52,12 @@ st.set_page_config(page_title="SIP Calculator KG Capital", layout="wide")
 st.title("SIP Calculator KG Capital")
 
 st.header("1. Investor Profile")
+future_lumps = []
+num_lumps = st.number_input("How many future lump sum infusions do you expect?", min_value=0, max_value=5, value=0)
+for i in range(num_lumps):
+    lump_year = st.number_input(f"Year of Lump Sum #{i+1}", min_value=current_year, max_value=current_year+50, value=current_year+1, key=f"lump_year_{i}")
+    lump_amount = st.number_input(f"Expected Amount of Lump Sum #{i+1} (₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"lump_amt_{i}")
+    future_lumps.append({"year": lump_year, "amount": lump_amount})
 age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
 current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
 
@@ -116,7 +122,15 @@ if st.button("Calculate Plan"):
             st.warning(f"⚠️ Goal '{goal['Name']}' must be after SIP start date. Skipping this goal.")
             continue
 
-        fv = goal["Future Value"]
+                fv = goal["Future Value"]
+
+        # Adjust FV based on all future lump sums before this goal
+        for lump in future_lumps:
+            if lump["year"] <= goal["Year"]:
+                years_before_goal = goal["Year"] - lump["year"]
+                value_at_goal = lump["amount"] * ((1 + expected_return) ** years_before_goal)
+                fv = max(0, fv - value_at_goal)
+
         total_fv += fv
 
         lumpsum_required = calculate_lump_sum(fv, expected_return, n_years)
@@ -146,3 +160,4 @@ if st.button("Calculate Plan"):
     col1.metric("Total Future Value Needed", f"₹ {total_fv:,.0f}")
     col2.metric("Total Monthly SIP (Today)", f"₹ {total_sip:,.0f}")
     col1.metric("Total Lump Sum Needed Today", f"₹ {total_lumpsum:,.0f}")
+
