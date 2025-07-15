@@ -52,8 +52,8 @@ def calculate_lump_sum(fv, rate, years):
 # -----------------------------
 # Streamlit App Layout
 # -----------------------------
-st.set_page_config(page_title="Goal-based SIP Calculator", layout="wide")
-st.title("🌟 Smart SIP & Lump Sum Planner")
+st.set_page_config(page_title="SIP Calculator KG Capital", layout="wide")
+st.title("SIP Calculator KG Capital")
 
 st.header("1. Investor Profile")
 age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
