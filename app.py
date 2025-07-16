@@ -45,6 +45,24 @@ def calculate_sip(fv, rate, n_months):
 def calculate_lump_sum(fv, rate, years):
     return fv / ((1 + rate) ** years)
 
+def distribute_proportionally(total_amount, goals):
+    """
+    Distribute total amount proportionally based on future value of goals
+    """
+    if not goals or total_amount <= 0:
+        return {goal["Name"]: 0 for goal in goals}
+    
+    total_fv = sum(goal["Future Value"] for goal in goals)
+    if total_fv == 0:
+        return {goal["Name"]: 0 for goal in goals}
+    
+    distribution = {}
+    for goal in goals:
+        proportion = goal["Future Value"] / total_fv
+        distribution[goal["Name"]] = total_amount * proportion
+    
+    return distribution
+
 # -----------------------------
 # Streamlit App Layout
 # -----------------------------
@@ -54,24 +72,23 @@ st.title("SIP Calculator KG Capital")
 st.header("1. Investor Profile")
 current_year = datetime.now().year
 
+age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
+current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
+
 st.header("2. Future Lump Sum Inflows (Optional)")
-
-
 future_lumps = []
 num_lumps = st.number_input("How many future lump sum infusions do you expect?", min_value=0, max_value=5, value=0)
+
 for i in range(num_lumps):
+    st.subheader(f"Lump Sum #{i+1}")
     lump_year = st.number_input(f"Year of Lump Sum #{i+1}", min_value=current_year, max_value=current_year+50, value=current_year+1, key=f"lump_year_{i}")
     lump_amount = st.number_input(f"Expected Amount of Lump Sum #{i+1} (₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"lump_amt_{i}")
     future_lumps.append({"year": lump_year, "amount": lump_amount})
-age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
-current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
 
 st.header("3. Goal Planning")
 num_goals = st.number_input("How many financial goals do you want to plan for?", min_value=1, max_value=10, value=2)
 
 goals = []
-current_year = datetime.now().year
-
 default_inflation = 6.0
 
 for i in range(int(num_goals)):
@@ -93,7 +110,7 @@ for i in range(int(num_goals)):
         "Future Value": future_value
     })
 
-st.header("3. SIP Preferences")
+st.header("4. SIP Preferences")
 sip_start_year = st.number_input("Year you want to start SIP", min_value=current_year, max_value=current_year+50, value=current_year)
 sip_start_month = st.selectbox("Select SIP Start Month", ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"])
 sip_grows = st.radio("Do you want to increase SIP every year?", ["No (Constant)", "Yes (Grow Annually)"])
@@ -108,6 +125,22 @@ expected_return = st.number_input("Expected Annual Return on SIP/Lump Sum (%)", 
 # -----------------------------
 if st.button("Calculate Plan"):
     st.header("📊 Calculation Results")
+    
+    # Calculate proportional distribution of current savings
+    current_savings_distribution = distribute_proportionally(current_savings, goals)
+    
+    # Calculate proportional distribution of future lump sums
+    future_lumps_distribution = {}
+    for lump in future_lumps:
+        lump_distribution = distribute_proportionally(lump["amount"], goals)
+        for goal_name, amount in lump_distribution.items():
+            if goal_name not in future_lumps_distribution:
+                future_lumps_distribution[goal_name] = []
+            future_lumps_distribution[goal_name].append({
+                "year": lump["year"],
+                "amount": amount
+            })
+    
     results = []
     total_fv = 0
     total_lumpsum = 0
@@ -129,8 +162,15 @@ if st.button("Calculate Plan"):
 
         fv = goal["Future Value"]
 
-        # Adjust FV based on all future lump sums before this goal
-        for lump in future_lumps:
+        # Deduct current savings allocated to this goal (grown to target year)
+        current_savings_for_goal = current_savings_distribution.get(goal["Name"], 0)
+        if current_savings_for_goal > 0:
+            current_savings_fv = current_savings_for_goal * ((1 + expected_return) ** goal["Years to Goal"])
+            fv = max(0, fv - current_savings_fv)
+
+        # Deduct future lump sums allocated to this goal
+        goal_lumps = future_lumps_distribution.get(goal["Name"], [])
+        for lump in goal_lumps:
             if lump["year"] <= goal["Year"]:
                 years_before_goal = goal["Year"] - lump["year"]
                 value_at_goal = lump["amount"] * ((1 + expected_return) ** years_before_goal)
@@ -151,7 +191,10 @@ if st.button("Calculate Plan"):
         results.append({
             "Goal": goal["Name"],
             "Target Year": goal["Year"],
-            "Future Cost (₹)": round(fv, 2),
+            "Original Future Cost (₹)": round(goal["Future Value"], 2),
+            "Current Savings Allocated (₹)": round(current_savings_for_goal, 2),
+            "Future Lump Sum Allocated (₹)": round(sum(lump["amount"] for lump in goal_lumps), 2),
+            "Remaining Future Cost (₹)": round(fv, 2),
             "Years to Goal": round(n_years, 2),
             "Monthly SIP Required (₹)": round(sip_required, 2),
             "Lump Sum Today (₹)": round(lumpsum_required, 2)
@@ -162,10 +205,35 @@ if st.button("Calculate Plan"):
 
     st.subheader("💸 Summary")
     col1, col2 = st.columns(2)
-    col1.metric("Total Future Value Needed", f"₹ {total_fv:,.0f}")
-    col2.metric("Total Monthly SIP (Today)", f"₹ {total_sip:,.0f}")
-    col1.metric("Total Lump Sum Needed Today", f"₹ {total_lumpsum:,.0f}")
-
+    col1.metric("Total Original Future Value", f"₹ {sum(goal['Future Value'] for goal in goals):,.0f}")
+    col2.metric("Total Remaining Future Value", f"₹ {total_fv:,.0f}")
+    col1.metric("Total Current Savings", f"₹ {current_savings:,.0f}")
+    col2.metric("Total Future Lump Sums", f"₹ {sum(lump['amount'] for lump in future_lumps):,.0f}")
+    col1.metric("Total Monthly SIP Required", f"₹ {total_sip:,.0f}")
+    col2.metric("Total Lump Sum Needed Today", f"₹ {total_lumpsum:,.0f}")
+    
+    # Show distribution breakdown
+    if current_savings > 0 or future_lumps:
+        st.subheader("📋 Distribution Breakdown")
+        
+        if current_savings > 0:
+            st.write("**Current Savings Distribution:**")
+            savings_df = pd.DataFrame([
+                {"Goal": goal_name, "Allocated Amount (₹)": round(amount, 2), "Percentage": f"{(amount/current_savings)*100:.1f}%"}
+                for goal_name, amount in current_savings_distribution.items()
+            ])
+            st.dataframe(savings_df, use_container_width=True)
+        
+        if future_lumps:
+            st.write("**Future Lump Sum Distribution:**")
+            for i, lump in enumerate(future_lumps):
+                st.write(f"*Lump Sum #{i+1} (Year {lump['year']}) - ₹{lump['amount']:,.0f}:*")
+                lump_dist = distribute_proportionally(lump["amount"], goals)
+                lump_df = pd.DataFrame([
+                    {"Goal": goal_name, "Allocated Amount (₹)": round(amount, 2), "Percentage": f"{(amount/lump['amount'])*100:.1f}%"}
+                    for goal_name, amount in lump_dist.items()
+                ])
+                st.dataframe(lump_df, use_container_width=True)
 
 
 
