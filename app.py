@@ -45,20 +45,30 @@ def calculate_sip(fv, rate, n_months):
 def calculate_lump_sum(fv, rate, years):
     return fv / ((1 + rate) ** years)
 
-def distribute_proportionally(total_amount, goals):
+def distribute_proportionally(total_amount, goals, lump_sum_year=None):
     """
-    Distribute total amount proportionally based on future value of goals
+    Distribute total amount proportionally based on present cost of goals
+    If lump_sum_year is provided, only distribute to goals that occur after that year
     """
     if not goals or total_amount <= 0:
         return {goal["Name"]: 0 for goal in goals}
     
-    total_fv = sum(goal["Future Value"] for goal in goals)
-    if total_fv == 0:
+    # Filter goals based on lump sum year if provided
+    eligible_goals = goals
+    if lump_sum_year is not None:
+        eligible_goals = [goal for goal in goals if goal["Year"] > lump_sum_year]
+    
+    if not eligible_goals:
         return {goal["Name"]: 0 for goal in goals}
     
-    distribution = {}
-    for goal in goals:
-        proportion = goal["Future Value"] / total_fv
+    total_present_cost = sum(goal["Present Cost"] for goal in eligible_goals)
+    if total_present_cost == 0:
+        return {goal["Name"]: 0 for goal in goals}
+    
+    distribution = {goal["Name"]: 0 for goal in goals}  # Initialize all goals with 0
+    
+    for goal in eligible_goals:
+        proportion = goal["Present Cost"] / total_present_cost
         distribution[goal["Name"]] = total_amount * proportion
     
     return distribution
@@ -132,14 +142,15 @@ if st.button("Calculate Plan"):
     # Calculate proportional distribution of future lump sums
     future_lumps_distribution = {}
     for lump in future_lumps:
-        lump_distribution = distribute_proportionally(lump["amount"], goals)
+        lump_distribution = distribute_proportionally(lump["amount"], goals, lump["year"])
         for goal_name, amount in lump_distribution.items():
             if goal_name not in future_lumps_distribution:
                 future_lumps_distribution[goal_name] = []
-            future_lumps_distribution[goal_name].append({
-                "year": lump["year"],
-                "amount": amount
-            })
+            if amount > 0:  # Only add if amount is greater than 0
+                future_lumps_distribution[goal_name].append({
+                    "year": lump["year"],
+                    "amount": amount
+                })
     
     results = []
     total_fv = 0
@@ -205,10 +216,6 @@ if st.button("Calculate Plan"):
 
     st.subheader("💸 Summary")
     col1, col2 = st.columns(2)
-    col1.metric("Total Original Future Value", f"₹ {sum(goal['Future Value'] for goal in goals):,.0f}")
-    col2.metric("Total Remaining Future Value", f"₹ {total_fv:,.0f}")
-    col1.metric("Total Current Savings", f"₹ {current_savings:,.0f}")
-    col2.metric("Total Future Lump Sums", f"₹ {sum(lump['amount'] for lump in future_lumps):,.0f}")
     col1.metric("Total Monthly SIP Required", f"₹ {total_sip:,.0f}")
     col2.metric("Total Lump Sum Needed Today", f"₹ {total_lumpsum:,.0f}")
     
@@ -228,16 +235,16 @@ if st.button("Calculate Plan"):
             st.write("**Future Lump Sum Distribution:**")
             for i, lump in enumerate(future_lumps):
                 st.write(f"*Lump Sum #{i+1} (Year {lump['year']}) - ₹{lump['amount']:,.0f}:*")
-                lump_dist = distribute_proportionally(lump["amount"], goals)
+                lump_dist = distribute_proportionally(lump["amount"], goals, lump["year"])
+                
+                # Check if any goals are eligible for this lump sum
+                eligible_goals = [goal for goal in goals if goal["Year"] > lump["year"]]
+                if not eligible_goals:
+                    st.warning(f"⚠️ No goals occur after {lump['year']}, so this lump sum cannot be allocated to any goal.")
+                    continue
+                
                 lump_df = pd.DataFrame([
-                    {"Goal": goal_name, "Allocated Amount (₹)": round(amount, 2), "Percentage": f"{(amount/lump['amount'])*100:.1f}%"}
+                    {"Goal": goal_name, "Allocated Amount (₹)": round(amount, 2), "Percentage": f"{(amount/lump['amount'])*100:.1f}%" if amount > 0 else "0.0%"}
                     for goal_name, amount in lump_dist.items()
                 ])
                 st.dataframe(lump_df, use_container_width=True)
-
-
-
-
-
-
-
