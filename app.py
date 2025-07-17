@@ -83,7 +83,7 @@ st.header("1. Investor Profile")
 current_year = datetime.now().year
 
 age = st.number_input("Current Age", min_value=0, max_value=100, value=30)
-current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0.2f")
+current_savings = st.number_input("Current Savings (in ₹)", min_value=0.0, step=1000.0, format="%0f")
 
 st.header("2. Future Lump Sum Inflows (Optional)")
 future_lumps = []
@@ -92,7 +92,7 @@ num_lumps = st.number_input("How many future lump sum infusions do you expect?",
 for i in range(num_lumps):
     st.subheader(f"Lump Sum #{i+1}")
     lump_year = st.number_input(f"Year of Lump Sum #{i+1}", min_value=current_year, max_value=current_year+50, value=current_year+1, key=f"lump_year_{i}")
-    lump_amount = st.number_input(f"Expected Amount of Lump Sum #{i+1} (₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"lump_amt_{i}")
+    lump_amount = st.number_input(f"Expected Amount of Lump Sum #{i+1} (₹)", min_value=0.0, step=1000.0, format="%0f", key=f"lump_amt_{i}")
     future_lumps.append({"year": lump_year, "amount": lump_amount})
 
 st.header("3. Goal Planning")
@@ -105,7 +105,7 @@ for i in range(int(num_goals)):
     st.subheader(f"Goal #{i+1}")
     goal_name = st.text_input(f"Name of Goal #{i+1}", key=f"goal_name_{i}")
     target_year = st.number_input(f"Target Year for {goal_name}", min_value=current_year, max_value=current_year+50, value=current_year+5, key=f"year_{i}")
-    present_cost = st.number_input(f"Estimated Present Cost of {goal_name} (in ₹)", min_value=0.0, step=1000.0, format="%0.2f", key=f"cost_{i}")
+    present_cost = st.number_input(f"Estimated Present Cost of {goal_name} (in ₹)", min_value=0.0, step=1000.0, format="%0f", key=f"cost_{i}")
     inflation_rate = st.number_input(f"Expected Inflation Rate for {goal_name} (%)", min_value=0.0, max_value=100.0, value=default_inflation, step=0.1, key=f"inf_{i}") / 100
 
     years_to_goal = target_year - current_year
